@@ -1035,7 +1035,6 @@ implementation
                       targetinfos[target_info.system]^.alignment.recordalignmin);
                     { write visibility flags }
                     tcb.emit_ord_const(byte(visibility_to_rtti(sym.visibility)),u8inttype);
-                    // TODO: for published properties write a label to the existing legacy table
                     { create separate constant builder }
                     current_asmdata.getglobaldatalabel(tbllab);
                     tbltcb:=ctai_typedconstbuilder.create([tcalo_is_lab,tcalo_make_dead_strippable]);
@@ -1047,7 +1046,6 @@ implementation
                     tbltcb.free;
                     { write the pointer to the prop info }
                     tcb.emit_tai(Tai_const.Create_sym(tbllab),voidpointertype);
-                    // TODO: there is supposed to be an attribute table (TAttrData) here?
                     { end record }
                     tcb.end_anonymous_record;
                   end
