@@ -2191,7 +2191,7 @@ function GetMethodInfos(TypeInfo: PTypeInfo; MethodList: PExtendedMethodInfoTabl
 
 begin
   if TypeInfo^.Kind=tkRecord then
-    Result:=GetRecordMethodInfos(PRecordData(GetTypeData(TypeInfo)),MethodList,Visibilities)
+     Result:=GetRecordMethodInfos(PRecordData(GetTypeData(TypeInfo)),MethodList,Visibilities)
   else if TypeInfo^.Kind=tkClass then
     Result:=GetClassMethodInfos(PClassData(GetTypeData(TypeInfo)),MethodList,Visibilities)
   else
@@ -2233,19 +2233,22 @@ Type
 Var
   TempList : PExtendedMethodInfoTable;
   MethodEntry : PVmtMethodExEntry;
-  I,Count : longint;
+  I,aCount : longint;
   DoInsertMethod : TInsertMethod;
 
 begin
-  Count:=GetMethodList(TypeInfo,TempList,Visibilities);
+  MethodList:=nil;
+  Result:=0;
+  aCount:=GetMethodList(TypeInfo,TempList,Visibilities);
+  if aCount=0 then
+    exit;
   if sorted then
     DoInsertMethod:=@InsertMethodEntry
   else
     DoInsertMethod:=@InsertMethodEntryNoSort;
-  Result:=0;
-  MethodList:=GetMem(Count*SizeOf(Pointer));
+  MethodList:=GetMem(aCount*SizeOf(Pointer));
   Try
-     For I:=0 to Count-1 do
+     For I:=0 to aCount-1 do
        begin
        MethodEntry:=TempList^[i];
        DoInsertMethod(MethodList,MethodEntry,Result);
@@ -2311,7 +2314,7 @@ Var
 
 begin
   Result:=0;
-  aCount:=GetMethodInfos(TypeInfo,Nil,[]);
+  aCount:=GetMethodInfos(TypeInfo,Nil,Visibilities);
   MethodList:=Getmem(aCount*SizeOf(Pointer));
   try
     Result:=GetMethodInfos(TypeInfo,MethodList,Visibilities);
@@ -3921,7 +3924,7 @@ end;
 
 function TRecordData.GetMethodTable: PRecordMethodTable;
 begin
-  Result:=PRecordMethodTable(PByte(GetExtendedFields)+ExtendedFieldCount*SizeOf(Pointer));
+  Result:=PRecordMethodTable(PByte(GetExtendedFields)+SizeOf(Word)+ExtendedFieldCount*SizeOf(Pointer));
 end;
 
 { TVmtExtendedFieldTable }
