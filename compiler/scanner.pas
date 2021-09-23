@@ -1754,7 +1754,8 @@ type
            srsymtable : TSymtable;
            hdef : TDef;
            l : longint;
-           hasKlammer: Boolean;
+           hasKlammer,
+           read_next: Boolean;
            exprvalue:texprvalue;
            ns:tnormalset;
         begin
@@ -2185,8 +2186,10 @@ type
              begin
                preproc_consume(_LECKKLAMMER);
                ns:=[];
-               while current_scanner.preproc_token in [_ID,_INTCONST] do
+               read_next:=false;
+               while (current_scanner.preproc_token in [_ID,_INTCONST]) or read_next do
                begin
+                 read_next:=false;
                  exprvalue:=preproc_factor(eval);
                  { the const set does not conform to the set def }
                  if (conform_to<>nil) and 
@@ -2205,7 +2208,10 @@ type
                    end;
                  include(ns,exprvalue.asInt);
                  if current_scanner.preproc_token = _COMMA then
-                   preproc_consume(_COMMA);
+                   begin
+                     preproc_consume(_COMMA);
+                     read_next:=true;
+                   end
                end;
                preproc_consume(_RECKKLAMMER);
                if result=nil then
