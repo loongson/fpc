@@ -233,6 +233,7 @@ implementation
         rtticount,
         totalcount,
         i,j,k : longint;
+        vmt_index : integer;
         sym : tprocsym;
         def : tprocdef;
         para : tparavarsym;
@@ -252,69 +253,87 @@ implementation
                   inc(rtticount);
             end;
 
-        tcb.emit_ord_const(totalcount,u16inttype);
-        if rtticount = 0 then
-          tcb.emit_ord_const($FFFF,u16inttype)
-        else
+        { write the count section for non-extended methods }
+        if not extended_rtti then
           begin
-            tcb.emit_ord_const(rtticount,u16inttype);
-
-            for i:=0 to st.symlist.count-1 do
-              if tsym(st.symlist[i]).typ=procsym then
-                begin
-                  sym:=tprocsym(st.symlist[i]);
-                  for j:=0 to sym.procdeflist.count-1 do
-                    begin
-                      def:=tprocdef(sym.procdeflist[j]);
-
-                      if not (def.visibility in visibilities) then
-                        continue;
-
-                      def.init_paraloc_info(callerside);
-
-                      tcb.begin_anonymous_record('',defaultpacking,min(reqalign,SizeOf(PInt)),
-                        targetinfos[target_info.system]^.alignment.recordalignmin);
-
-                      write_rtti_reference(tcb,def.returndef,fullrtti);
-                      write_callconv(tcb,def);
-                      write_methodkind(tcb,def);
-                      tcb.emit_ord_const(def.paras.count,u16inttype);
-                      tcb.emit_ord_const(def.callerargareasize,ptrsinttype);
-                      tcb.emit_pooled_shortstring_const_ref(sym.realname);
-
-                      { write visibility section for extended RTTI }
-                      if extended_rtti then
-                        tcb.emit_ord_const(visibility_to_rtti_flags(def.visibility),u8inttype);
- 
-                      for k:=0 to def.paras.count-1 do
-                        begin
-                          para:=tparavarsym(def.paras[k]);
-
-                          tcb.begin_anonymous_record('',defaultpacking,min(reqalign,SizeOf(PInt)),
-                            targetinfos[target_info.system]^.alignment.recordalignmin);
-
-                          if is_open_array(para.vardef) or is_array_of_const(para.vardef) then
-                            write_rtti_reference(tcb,tarraydef(para.vardef).elementdef,fullrtti)
-                          else if para.vardef=cformaltype then
-                            write_rtti_reference(tcb,nil,fullrtti)
-                          else
-                            write_rtti_reference(tcb,para.vardef,fullrtti);
-                          write_param_flag(tcb,para);
-
-                          tcb.emit_pooled_shortstring_const_ref(para.realname);
-
-                          write_paralocs(tcb,@para.paraloc[callerside]);
-
-                          tcb.end_anonymous_record;
-                        end;
-
-                      if not is_void(def.returndef) then
-                        write_paralocs(tcb,@def.funcretloc[callerside]);
-
-                      tcb.end_anonymous_record;
-                    end;
-                end;
+            tcb.emit_ord_const(totalcount,u16inttype);
+            if rtticount=0 then
+              tcb.emit_ord_const($FFFF,u16inttype)
+            else
+              tcb.emit_ord_const(rtticount,u16inttype);
           end;
+
+        if rtticount>0 then
+          for i:=0 to st.symlist.count-1 do
+            if tsym(st.symlist[i]).typ=procsym then
+              begin
+                sym:=tprocsym(st.symlist[i]);
+                for j:=0 to sym.procdeflist.count-1 do
+                  begin
+                    def:=tprocdef(sym.procdeflist[j]);
+
+                    if not (def.visibility in visibilities) then
+                      continue;
+
+                    def.init_paraloc_info(callerside);
+
+                    tcb.begin_anonymous_record('',defaultpacking,min(reqalign,SizeOf(PInt)),
+                      targetinfos[target_info.system]^.alignment.recordalignmin);
+
+                    write_rtti_reference(tcb,def.returndef,fullrtti);
+                    write_callconv(tcb,def);
+                    write_methodkind(tcb,def);
+                    tcb.emit_ord_const(def.paras.count,u16inttype);
+                    tcb.emit_ord_const(def.callerargareasize,ptrsinttype);
+                    tcb.emit_pooled_shortstring_const_ref(sym.realname);
+
+                    if extended_rtti then
+                      begin
+                        { write visibility section for extended RTTI }
+                        tcb.emit_ord_const(visibility_to_rtti_flags(def.visibility),u8inttype);
+                        { for classes write a VMT index }
+                        if st.defowner.typ=objectdef then
+                          begin
+                            vmt_index:=-1;
+                            if po_virtualmethod in def.procoptions then
+                              for k:=0 to tobjectdef(st.defowner).vmtentries.count-1 do
+                                if pvmtentry(tobjectdef(st.defowner).vmtentries[k])^.procdef=def then
+                                  begin
+                                    vmt_index:=k;
+                                    break;
+                                  end;
+                            tcb.emit_ord_const(vmt_index,s16inttype);
+                          end;
+                      end;
+
+                    for k:=0 to def.paras.count-1 do
+                      begin
+                        para:=tparavarsym(def.paras[k]);
+
+                        tcb.begin_anonymous_record('',defaultpacking,min(reqalign,SizeOf(PInt)),
+                          targetinfos[target_info.system]^.alignment.recordalignmin);
+
+                        if is_open_array(para.vardef) or is_array_of_const(para.vardef) then
+                          write_rtti_reference(tcb,tarraydef(para.vardef).elementdef,fullrtti)
+                        else if para.vardef=cformaltype then
+                          write_rtti_reference(tcb,nil,fullrtti)
+                        else
+                          write_rtti_reference(tcb,para.vardef,fullrtti);
+                        write_param_flag(tcb,para);
+
+                        tcb.emit_pooled_shortstring_const_ref(para.realname);
+
+                        write_paralocs(tcb,@para.paraloc[callerside]);
+
+                        tcb.end_anonymous_record;
+                      end;
+
+                    if not is_void(def.returndef) then
+                      write_paralocs(tcb,@def.funcretloc[callerside]);
+
+                    tcb.end_anonymous_record;
+                  end;
+              end;
 
         tcb.end_anonymous_record;
       end;
@@ -773,7 +792,7 @@ implementation
             Fields: array[0..0] of TExtendedFieldInfo;
           end;
         }
-        tcb.begin_anonymous_record('',packrecords,1,targetinfos[target_info.system]^.alignment.recordalignmin);
+        tcb.begin_anonymous_record(internaltypeprefixName[itp_rtti_header],packrecords,1,targetinfos[target_info.system]^.alignment.recordalignmin);
         tcb.emit_ord_const(list.count,u16inttype);
         for i := 0 to list.count-1 do
           begin
@@ -786,7 +805,7 @@ implementation
                 Name: PShortString;
               end;
             }
-            tcb.begin_anonymous_record('$fpc_intern_ext_fieldinfo',packrecords,1,targetinfos[target_info.system]^.alignment.recordalignmin);
+            tcb.begin_anonymous_record(internaltypeprefixName[itp_rtti_header]+tostr(tfieldvarsym(sym).fieldoffset),packrecords,1,targetinfos[target_info.system]^.alignment.recordalignmin);
             { FieldOffset }
             tcb.emit_tai(Tai_const.Create_sizeint(tfieldvarsym(sym).fieldoffset),sizeuinttype);
             { FieldType: PPTypeInfo }
@@ -1044,6 +1063,7 @@ implementation
                       targetinfos[target_info.system]^.alignment.recordalignmin);
                     { write visibility flags }
                     tcb.emit_ord_const(visibility_to_rtti_flags(sym.visibility),u8inttype);
+                    // TODO: for published properties write a label to the existing legacy table
                     { create separate constant builder }
                     current_asmdata.getglobaldatalabel(tbllab);
                     tbltcb:=ctai_typedconstbuilder.create([tcalo_is_lab,tcalo_make_dead_strippable]);
