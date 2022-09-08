@@ -58,10 +58,43 @@ var
   argv: PPChar;
   envp: PPChar;
 
+Procedure DebugWriteln(aString : ShortString);
+
 implementation
 
 {$I wasitypes.inc}
 {$I wasiprocs.inc}
+
+function IntToStr(I : Longint) : ShortString;
+
+Var
+  S : ShortString;
+
+begin
+  Str(I,S);
+  IntToStr:=S;
+end;
+
+Procedure DebugWriteln(aString : ShortString);
+
+var
+  our_iov: __wasi_ciovec_t;
+  our_nwritten: longint;
+  res: __wasi_errno_t;
+
+begin
+  our_iov.buf := @aString[1];
+  our_iov.buf_len := Length(aString);
+  repeat
+    res:=__wasi_fd_write(1, @our_iov, 1, @our_nwritten);
+    if res=__WASI_ERRNO_SUCCESS then
+      begin
+      our_iov.buf_len:=our_iov.buf_len-our_nwritten;
+      our_iov.buf:=our_iov.buf+our_nwritten;
+      end;
+  Until (our_iov.buf_len=0) or (res=__WASI_ERRNO_SUCCESS) or ((res<>__WASI_ERRNO_INTR) and (res<>__WASI_ERRNO_AGAIN));
+end;
+
 
 function WasiAlloc (aLength : Longint) : Pointer; [public, alias: 'wasiAlloc'];
 
@@ -75,8 +108,10 @@ begin
   FreeMem(aMem);
 end;
 
-exports 
+exports
   WasiAlloc,WasiFree;
+
+
 
 function ConvertToFdRelativePath(path: RawByteString; out fd: LongInt; out relfd_path: RawByteString): Word; forward;
 
@@ -154,7 +189,7 @@ procedure System_exit;
 begin
   if ExitCode>=126 then
     begin
-      writeln(stderr,'##WASI-EXITCODE: ',ExitCode,' -> 125##');
+      Debugwriteln('##WASI-EXITCODE: '+IntToStr(ExitCode)+' -> 125##');
       ExitCode:=125;
     end;
   __wasi_proc_exit(ExitCode);
@@ -384,13 +419,15 @@ begin
   InitHeap;
   SysInitExceptions;
   initunicodestringmanager;
-  { Setup stdin, stdout and stderr }
-  SysInitStdIO;
   { Reset IO Error }
   InOutRes:=0;
-{$ifdef FPC_HAS_FEATURE_THREADING}
+{$ifdef FPC_WASM_THREADS}
   InitSystemThreads;
+  InitThreadVars(@WasiRelocateThreadVar);
 {$endif}
+  { Setup stdin, stdout and stderr }
+  SysInitStdIO;
   Setup_Environment;
   Setup_PreopenedDirs;
+  TLSInfoBlock:=Nil;
 end.
