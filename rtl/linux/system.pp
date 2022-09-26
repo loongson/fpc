@@ -660,6 +660,9 @@ function FpUGetRLimit(resource : cInt; rlim : PRLimit) : cInt; cdecl; external c
 const
   page_size = $10000;
   {$define LAST_PAGE_GENERATES_SIGNAL}
+{$elseif defined(CPULOONGARCH)}
+const
+  page_size = $4000;
 {$else}
 const
   page_size = $1000;

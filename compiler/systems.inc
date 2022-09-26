@@ -58,7 +58,8 @@
              cpu_xtensa,                   { 21 }
              cpu_z80,                      { 22 }
              cpu_mips64,                   { 23 }
-             cpu_mips64el                  { 24 }
+             cpu_mips64el,                 { 24 }
+             cpu_loongarch64                   { 25 }
        );
 
        tasmmode= (asmmode_none
@@ -209,7 +210,8 @@
              system_aarch64_freebsd,    { 115 }
              system_aarch64_embedded,   { 116 }
              system_mips64_linux,       { 117 }
-             system_mips64el_linux      { 118 }
+             system_mips64el_linux,     { 118 }
+             system_loongarch64_linux       { 119 }
        );
 
      type

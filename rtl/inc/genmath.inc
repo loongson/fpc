@@ -201,7 +201,10 @@ end;
              begin
                if (a.high<>longint($C3E00000)) or (a.low<>0) then
                  begin
+{$push}
+{$OPTIMIZATION OFF}
                    fpe_helper(zero/zero);
+{$pop}
                    if (longint(a.high)>=0) or ((aExp=$7FF) and
                       (aSig<>$0010000000000000 )) then
                      begin
@@ -249,7 +252,10 @@ end;
          Begin
            if ( a <> Float32($DF000000) ) then
              Begin
+{$push}
+{$OPTIMIZATION OFF}
                fpe_helper( zero/zero );
+{$pop}
                if ( (longint(a)>=0) or ( ( aExp = $FF ) and (aSig<>0) ) ) then
                  Begin
                    result:=$7fffffffffffffff;
@@ -989,7 +995,10 @@ end;
        if( d <= 0.0 ) then
        begin
            if d < 0.0 then
+{$push}
+{$OPTIMIZATION OFF}
              result:=(d-d)/zero
+{$pop}
            else
              result := 0.0;
        end
@@ -1451,7 +1460,10 @@ end;
         if (((hx and $7fffffff) or longint(lx))=0) then
           exit(-two54/zero);                { log(+-0)=-inf }
         if (hx<0) then
+{$push}
+{$OPTIMIZATION OFF}
           exit((d-d)/zero);                 { log(-#) = NaN }
+{$pop}
         dec(k, 54); d := d * two54;         { subnormal number, scale up x }
         hx := float64high(d);
       end;
@@ -1762,7 +1774,10 @@ function fpc_frac_real(d : ValReal) : ValReal;compilerproc;
     { Nan or +/-Inf }
     if (float64high(d) and $7ff00000)=$7ff00000 then
       { return NaN }
+{$push}
+{$OPTIMIZATION OFF}
       result := (d-d)/0.0 
+{$pop}
     else
       result := d - Int(d);
   end;
@@ -1889,7 +1904,10 @@ function FPower10(val: Extended; Power: Longint): Extended;
                 if power<=9 then
                   result:=result*negpow4096[Power]
                 else
+{$push}
+{$OPTIMIZATION OFF}
                   result:=1.0/0.0;
+{$pop}
               end;
           end;
       end
@@ -1906,7 +1924,10 @@ function FPower10(val: Extended; Power: Longint): Extended;
                 if power<=9 then
                   result:=result*pow4096[Power]
                 else
+{$push}
+{$OPTIMIZATION OFF}
                   result:=1.0/0.0;
+{$pop}
               end;
           end;
       end;

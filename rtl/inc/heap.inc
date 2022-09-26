@@ -75,8 +75,8 @@ const
 {$ifndef FPC_NO_DEFAULT_MEMORYMANAGER}
 const
 {$ifdef CPU64}
-  blocksize    = 32;  { at least size of freerecord }
-  blockshift   = 5;   { shr value for blocksize=2^blockshift}
+  blocksize    = 64;  { at least size of freerecord }
+  blockshift   = 6;   { shr value for blocksize=2^blockshift}
   maxblocksize = 512+blocksize; { 1024+8 needed for heaprecord }
 {$else}
   blocksize    = 16;  { at least size of freerecord }

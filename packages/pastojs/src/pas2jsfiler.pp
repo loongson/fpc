@@ -3343,6 +3343,7 @@ function TPCUWriter.IsExternalEl(El: TPasElement): boolean;
 var
   C: TClass;
 begin
+  Result:=false;
   while El<>nil do
     begin
     C:=El.ClassType;
@@ -3468,6 +3469,8 @@ begin
 
   if SpecItem<>nil then
     ParentRef:=WriteExternalReference(SpecItem.GenericEl,aContext)
+  else if Parent=nil then
+    ParentRef:=nil
   else if IsExternalEl(Parent) then
     ParentRef:=WriteExternalReference(Parent,aContext)
   else
